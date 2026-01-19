@@ -1,0 +1,512 @@
+%% Copyright 2022 OXFORD UNIVERSITY PRESS
+%%
+%% This file is part of the 'oup-authoring-template Bundle'.
+%% ---------------------------------------------
+%%
+%% It may be distributed under the conditions of the LaTeX Project Public
+%% License, either version 1.2 of this license or (at your option) any
+%% later version.  The latest version of this license is in
+%%    http://www.latex-project.org/lppl.txt
+%% and version 1.2 or later is part of all distributions of LaTeX
+%% version 1999/12/01 or later.
+
+\documentclass[unnumsec,webpdf,contemporary,large]{oup-authoring-template}
+
+\graphicspath{{Fig/}} % 所有图片放入Fig文件夹，格式已转为PDF
+
+% 必要包加载
+\usepackage{amsmath,amssymb,booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{lstlisting}
+
+% 定理环境定义
+\theoremstyle{thmstyleone}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{thmstyletwo}
+\newtheorem{example}{Example}
+\newtheorem{remark}{Remark}
+\theoremstyle{thmstylethree}
+\newtheorem{definition}{Definition}
+
+\begin{document}
+
+%% 论文元信息
+\journaltitle{Bioinformatics}
+\DOI{10.1093/bioinformatics/xxx}
+\copyrightyear{2024}
+\pubyear{2024}
+\access{Advance Access Publication Date: Day Month Year}
+\appnotes{Paper}
+
+\firstpage{1}
+
+\title[ADDI Prediction with Multimodal Deep Learning]{A Multimodal Deep Learning Framework Integrating Drug Interaction Networks and Molecular Features for Adverse Drug-Drug Interaction Prediction}
+
+% 作者信息（替换为实际内容）
+\author[1,$\ast$]{First Author\ORCID{0000-0000-0000-0000}}
+\author[2]{Second Author\ORCID{0000-0000-0000-0001}}
+\author[1]{Third Author}
+\author[3]{Fourth Author}
+
+\authormark{First Author et al.}
+
+\address[1]{\orgdiv{Department of Biomedical Engineering}, \orgname{XX University}, \orgaddress{\street{123 XX Street}, \postcode{100000}, \country{China}}}
+\address[2]{\orgdiv{Department of Pharmacology}, \orgname{XX Institute of Medicine}, \orgaddress{\street{456 YY Road}, \postcode{200000}, \country{China}}}
+\address[3]{\orgdiv{Department of Computer Science}, \orgname{XX Technology University}, \orgaddress{\street{789 ZZ Avenue}, \postcode{300000}, \country{China}}}
+
+\corresp[$\ast$]{Corresponding author. E-mail: \href{mailto:corresponding.author@xxx.edu}{corresponding.author@xxx.edu}; Tel: +86-123-4567-8910}
+
+\received{Day}{Month}{Year}
+\revised{Day}{Month}{Year}
+\accepted{Day}{Month}{Year}
+
+%% 结构化摘要（ISMB要求）
+\abstract{
+\textbf{Motivation:} Combination therapy increases adverse drug-drug interactions (ADDI) risk, but traditional trials face combinatorial explosion. Existing computational models lack interpretability and deep multimodal fusion, limiting clinical translation.\\
+\textbf{Results:} We propose a symmetric multimodal framework integrating drug interaction networks and molecular features. It achieves 94.18% ACC on Deng’s Dataset and 94.45% on Chen-based Dataset, outperforming state-of-the-art methods. Data augmentation ensures order invariance, enhancing robustness.\\
+\textbf{Availability and Implementation:} Source code is publicly available at \href{https://github.com/your-username/ADDI-Multimodal-Prediction}{https://github.com/your-username/ADDI-Multimodal-Prediction}, including preprocessing scripts, model training code, and dataset documentation (Python 3.8+, PyTorch 1.10+).\\
+\textbf{Contact:} \href{mailto:corresponding.author@xxx.edu}{corresponding.author@xxx.edu}\\
+\textbf{Supplementary Information:} None.
+}
+
+\keywords{Drug-drug adverse interactions; Attention mechanism; Deep learning; Multimodal fusion; Predictive modeling}
+
+\maketitle
+
+\section{Introduction}
+Combination therapy constitutes a mainstream strategy for treating complex diseases (e.g., cardiovascular diseases and cancer), aiming to enhance therapeutic efficacy through synergistic drug effects\cite{wang2022current}. However, this approach substantially increases the risk of adverse drug-drug interactions (ADDI)—the in vivo process whereby one drug influences another, leading to increased toxicity or diminished efficacy (e.g., lethal haemorrhage from warfarin and levofloxacin combination\cite{qin2017maras}).
+
+ADDI is a critical subset of adverse drug reactions (ADRs) with higher predictive complexity than single-drug interactions. Traditional discovery relies on preclinical trials and post-marketing surveillance, suffering from species differences, time lag, and high underreporting rates. The exponential growth of drug combinations ("combinatorial explosion") further renders conventional methods impractical.
+
+Early computational studies employed traditional machine learning models (e.g., support vector machines) with manually selected features\cite{zhang2018manifold}, but suffered from strong feature dependency. Deep learning technologies (e.g., GNNs\cite{zitnik2018modelling}, Transformers\cite{mswahili2024transformer}) have advanced ADDI prediction, but three bottlenecks persist: (1) lack of interpretability; (2) input sequence sensitivity; (3) superficial multimodal fusion.
+
+To address these issues, we propose a symmetric, interpretable multimodal framework with deep feature fusion. Our core contributions are: (1) a symmetric architecture resolving sequence sensitivity; (2) deep multimodal fusion exploiting complementary information; (3) rigorous validation on benchmark datasets.
+
+\section{Related Work}
+Early ADDI prediction relied on statistical\cite{kastrin2018predicting} and text mining\cite{tari2010discovering} analyses of post-marketing data (e.g., FAERS\cite{tatonetti2012novel}), but failed to predict pre-launch risks\cite{jin2017multitask}. Subsequent machine learning approaches extracted features from DrugBank\cite{knox2024drugbank} and SIDER\cite{kuhn2016sider}, achieving limited generalisation.
+
+Recent deep learning paradigms focus on GNNs and knowledge graphs (KGs). The Decagon model\cite{zitnik2018modelling} used GNNs for multi-relational prediction, while KG-based methods\cite{karim2019drug} embedded entity relationships. However, "black box" models and inadequate multimodal integration remain unresolved. Future breakthroughs require interpretable algorithms and deep fusion of multi-source data (e.g., metabolic pathways, omics).
+
+\section{Materials and Methods}
+\subsection{Definitions}
+Drug properties (side effects, targets, enzymes) are represented as Boolean vectors. Taking side effects as an example, a value of 1 in this vector indicates the drug induces the corresponding side effect, while zero indicates it does not. This representation provides data support for multi-classification tasks concerning drug side effects. Figure 3.1 visually illustrates the conceptual characterisation of drug-drug adverse interactions and the workflow.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{Fig/figure3_1_drug_side_effect.pdf} % 原始图3.1（已转PDF）
+\caption{Schematic representation of drug-side effect characterisation}
+\alttext{Diagram showing the mapping between drug pairs (with descriptors ddi-ddp) and side effects (se1-se4), where each drug pair is associated with a binary side effect vector.}
+\label{fig:drug_side_effect}
+\end{figure}
+
+Given a dataset of $n$ drug pairs, denoted as
+\begin{equation}
+\{(x_i, y_i)\}_{i=1}^n
+\label{eq:drug_pairs}
+\end{equation}
+where $x_i$ and $y_i$ denote the $p$-dimensional feature vector and $q$-dimensional side effect vector for the $i$-th drug pair, respectively. The objective of this paper is to establish a functional mapping between the independent variable (drug feature vector) and the dependent variable (side effect vector):
+\begin{equation}
+Y = F(X):2^p \rightarrow 2^q
+\label{eq:mapping}
+\end{equation}
+for multi-class classification task learning.
+
+\subsection{Model Architecture}
+As illustrated in Figure 3.2, the overall structure of the drug-drug interaction side effect prediction model can be regarded as an encoder-decoder architecture, comprising four principal components: feature extraction, feature fusion, feature representation learning, and classification prediction.
+
+This study employs an encoder-decoder architecture. Inputting drug SMILES strings, these are first parsed into molecular graphs via RDKit\cite{bjerrum2024python} to extract substructure representations such as molecular topology. The encoder ultimately integrates multi-source sequential features of drug combinations—including molecular topology, active compounds, and relationship data based on interaction similarity networks—to generate comprehensive feature encodings.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{Fig/figure3_2_model_architecture.pdf} % 原始图3.2（已转PDF）
+\caption{Overall structure of the drug-drug interaction side effect prediction model}
+\alttext{Encoder-decoder architecture including feature coding, concatenation, data augmentation, similarity network fusion, attention networks, feature learning, decoding, and classification modules. Key elements: SMILES (CC(=O)OC₁CCCC₁C(=O)O), targets (P23219/P35354/Q04828), enzymes (P33261/P11712/P19224), and processes like shuffle, batch encoding, and loss calculation.}
+\label{fig:model_architecture_overall}
+\end{figure}
+
+The feature representation learning component comprises feature encoding, concatenation, data augmentation, drug-drug adverse interaction network fusion, and node attention/semantic attention mechanism network models. The learned features are subsequently fed into a decoder classifier to output prediction result vectors.
+
+\subsubsection{Drug Feature Representation Module}
+Drug feature representations are typically constructed as Boolean vectors based on characteristics such as chemical structure and targets. This paper employs SMILES strings to generate Morgan fingerprints (also known as Extended Conjugate Fingerprints, ECFP). This fingerprint method utilises atomic and ring-neighbourhood structures, generating fixed-length Boolean vectors via hash mapping, where each bit indicates the presence or absence of specific structural features.
+
+To enhance predictive performance, we introduce an auxiliary feature based on similarity networks. Specifically, a Top-K nearest neighbour network is constructed for each drug pair using cosine similarity (robust to high-dimensional Boolean vectors):
+\begin{equation}
+\text{CosineSimilarity} = \cos(\theta) = \frac{\sum_{i=1}^n CombineA_i CombineB_i}{\sqrt{\sum_{i=1}^n CombineA_i^2}}
+\label{eq:cosine_similarity}
+\end{equation}
+
+\subsubsection{Drug Feature Learning Module}
+To address the challenges of high-dimensional, sparse, and coarse feature encoding, data augmentation (feature transformation, summation, BiLSTM) is introduced to mitigate the impact of drug combination order. The multi-head attention mechanism constitutes a vital component within the Transformer model\cite{vaswani2017attention}, introducing multiple "heads" to capture diverse drug feature relationships, as illustrated in Figure 3.3.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{Fig/figure3_3_multi_head_attention.pdf} % 原始图3.3（已转PDF）
+\caption{Multi-head Attention and Scalar Dot-Product Attention}
+\alttext{Diagram of multi-head attention: input Q/K/V undergo linear transformations, scaled dot-product attention, and concatenation, followed by a final linear layer to produce the output. Key steps include MatMul, Scale, SoftMax, and Concat operations.}
+\label{fig:multi_head_attention}
+\end{figure}
+
+The input drug sequence undergoes a linear transformation to generate query (Q), key (K), and value (V) matrices:
+\begin{equation}
+Q = XW_Q, \quad K = XW_K, \quad V = XW_V
+\label{eq:qkv}
+\end{equation}
+Each head computes its attention score independently:
+\begin{equation}
+\text{Attention}(Q,K,V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
+\label{eq:attention}
+\end{equation}
+\begin{equation}
+\text{softmax}(z_i) = \frac{e^{z_i}}{\sum_{j=1}^n e^{z_j}}
+\label{eq:softmax}
+\end{equation}
+The concatenated outputs from different heads undergo a linear transformation to generate the final multi-head attention output:
+\begin{equation}
+\text{MultiHead}(Q,K,V) = \text{Concat}(head_1, head_2, ..., head_h)W_O
+\label{eq:multi_head}
+\end{equation}
+
+By integrating the multi-head attention mechanism and drawing upon principles from self-attention and cross-attention, a drug interaction semantic attention and node attention feature learning network model was designed, as illustrated in Figure 3.4.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{Fig/figure3_4_semantic_node_attention.pdf} % 原始图3.4（已转PDF）
+\caption{Semantic attention and node attention feature learning network}
+\alttext{Encoder architecture showing input feature sequence fed into attention layer, followed by BatchNorm and linear layer, with attention scores computed based on (Q,K,V) to produce weighted output representations.}
+\label{fig:semantic_node_attention}
+\end{figure}
+
+To enhance computational efficiency, this study introduces a linear attention mechanism. Traditional Softmax attention exhibits quadratic complexity (O(N²)) when processing long sequences, while linear attention reduces this to linear complexity (O(N)) through kernel approximation. Building upon the aforementioned insights, this paper further proposes a novel attention score computation method incorporating dynamically combined weight matrices, as illustrated in Figure 3.5.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{Fig/figure3_5_dynamic_attention.pdf} % 原始图3.5（已转PDF）
+\caption{Schematic diagram of dynamic transformation attention weight calculation}
+\alttext{Dynamic attention workflow: input undergoes linear transformations to generate Qdynamic and Kdynamic, attention score is computed via dot product and scaled by √dk, Softmax normalisation produces weights, and weighted sum with V yields context vector, followed by linear layer output.}
+\label{fig:dynamic_attention}
+\end{figure}
+
+Here, the input data undergoes distinct dynamic linear transformations to generate dynamic queries (Qdynamic) and dynamic keys (Kdynamic):
+\begin{equation}
+Q_{dynamic} = W_{Q_{dynamic}}(X), \quad K_{dynamic} = W_{K_{dynamic}}(X)
+\label{eq:dynamic_qk}
+\end{equation}
+The dot product between the dynamic query and the dynamic key is computed to yield the attention score:
+\begin{equation}
+\text{AttentionScore} = \frac{Q_{dynamic} \cdot K_{dynamic}^T}{\sqrt{d_k}}
+\label{eq:dynamic_attention_score}
+\end{equation}
+The attention score is normalised by applying the Softmax function to yield the attention weights, which are then weighted and summed to produce the context vector:
+\begin{equation}
+\text{Context} = \text{softmax}(\text{AttentionScore}) \cdot V
+\label{eq:dynamic_context}
+\end{equation}
+Finally, the outputs from all heads are concatenated and mapped to the final output via a fully connected layer:
+\begin{equation}
+\text{Output} = FC(\text{Context})
+\label{eq:dynamic_output}
+\end{equation}
+
+\subsubsection{Adverse Interaction Classification Module}
+As illustrated in Figure 3.6, the model's output layer is based on a fully connected network. Processed drug feature representations are concatenated and successively weighted through semantic-level and node-level attention models to capture higher-order relationships and fine-grained feature interactions between drugs, respectively.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{Fig/figure3_6_classification_module.pdf} % 原始图3.6（已转PDF）
+\caption{Schematic diagram of the model output section}
+\alttext{Classification module structure: molecular structures and network features are concatenated, processed via Batch Normalization, GeLU activation, and fully connected layers, ultimately outputting side effect labels.}
+\label{fig:classification_module}
+\end{figure}
+
+The weighted features undergo a nonlinear transformation via a fully connected layer to extract high-level abstract patterns. The final output is a vector whose dimensions match the number of adverse effect categories, with each element representing the predicted probability of the corresponding adverse effect occurring. This vector is normalised into a probability distribution via the Softmax function, and the category corresponding to the maximum probability value is selected as the prediction result.
+
+\subsection{Dataset}
+This study utilises two datasets:
+- \textbf{Deng’s Dataset}\cite{deng2020multimodal}: 572 drugs, 74,528 drug pairs, 65 ADDI types (features: substructure, target, enzyme).
+- \textbf{Chen-based Dataset}\cite{ryu2018deep}: 1,569 drugs, 172,426 drug pairs, 81 ADDI types (corrected drug-target/enzyme relationships from DrugBank).
+
+Drug feature examples are shown in Table 3.1.
+
+\begin{table}[!t]
+\caption{Examples of raw drug features}
+\label{tab:drug_features}
+\begin{tabular*}{\columnwidth}{@{\extracolsep\fill}lc@{\extracolsep\fill}}
+\toprule
+Feature type & Example \\
+\midrule
+SMILES & CC(=O)OC₁CCCC₁C(=O)O \\
+Target & P23219, P35354, Q04828, BE0004907, P251... \\
+Metabolising enzymes & P33261, P11712, P19224, P11245 \\
+\botrule
+\end{tabular*}
+\end{table}
+
+Table 3.2 summarizes the data resource information.
+
+\begin{table}[!t]
+\caption{Data Resource Information Table}
+\label{tab:data_resource}
+\begin{tabular*}{\columnwidth}{@{\extracolsep\fill}lcc@{\extracolsep\fill}}
+\toprule
+Name & Type & Sum \\
+\midrule
+\multirow{3}{*}{Deng’s Dataset} & Drug & 572 \\
+& Drug pair & 74528 \\
+& ADDI & 65 \\
+\multirow{3}{*}{Chen-based Dataset} & Drug & 1569 \\
+& Drug pair & 172426 \\
+& ADDI & 81 \\
+\botrule
+\end{tabular*}
+\end{table}
+
+\subsection{Evaluation Metrics}
+For the task of predicting adverse drug-drug interactions (ADDI), we use the following evaluation metrics:
+\begin{equation}
+\text{ACC} = \frac{TP+TN}{TP+TN+FP+FN}
+\label{eq:acc}
+\end{equation}
+\begin{equation}
+\text{Precision} = \frac{TP}{TP+FP}
+\label{eq:precision}
+\end{equation}
+\begin{equation}
+\text{Recall} = \frac{TP}{TP+FN}
+\label{eq:recall}
+\end{equation}
+\begin{equation}
+\text{F1-score} = 2 \times \frac{\text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}
+\label{eq:f1}
+\end{equation}
+where $TP$ = true positive, $TN$ = true negative, $FP$ = false positive, $FN$ = false negative. AUC and AUPR are also reported.
+-----------
+\section{Discussion of Results}
+This study employs the cross-entropy loss function for the model. For a binary classification task, the cross-entropy loss is defined as:
+\begin{equation}
+\text{Loss} = -[y\log(\hat{y}) + (1-y)\log(1-\hat{y})]
+\label{eq:binary_cross_entropy}
+\end{equation}
+For multi-class drug side effect classification tasks with $C$ classes, the multi-class cross-entropy loss is defined as:
+\begin{equation}
+\text{Loss} = -\sum_{c=1}^C y_c \log(\hat{y}_c)
+\label{eq:multi_cross_entropy}
+\end{equation}
+where $y_c$ is the one-hot encoded accurate label, and $\hat{y}_c$ is the model's predicted probability for class $c$. Comparison examples are shown in Table 4.1.
+
+\begin{table}[!t]
+\caption{Example of model prediction labels versus accurate labels: Encoding comparison}
+\label{tab:label_comparison}
+\begin{tabular*}{\columnwidth}{@{\extracolsep\fill}lc@{\extracolsep\fill}}
+\toprule
+Type & Value \\
+\midrule
+Output labels & 1.0715×10⁻⁶, 2.2964×10⁻⁷, 9.9996×10⁻¹, 1.7974×10⁻⁷, ... \\
+True labels & 0.0000e+00, 0.0000e+00, 1.0000e+00, 0.0000e+00, ... \\
+\botrule
+\end{tabular*}
+\end{table}
+-----------
+From Figure 4.1, it can be observed that the training loss gradually decreases with increasing training iterations and tends towards convergence. This indicates that the model continuously optimises during training, while the trend in test loss reflects the model's performance on unseen data.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{Fig/figure4_1_loss_curve.pdf} % 原始图4.1（已转PDF）
+\caption{Model Loss Curve Function Variation Curve}
+\alttext{Double subplot of training and test loss over iterations: left subplot (Train) shows loss decreasing from ~0.0175 to ~0.005; right subplot (Test) shows loss stabilising at ~0.007, indicating no overfitting.}
+\label{fig:loss_curve}
+\end{figure}
+-----------
+This paper employs an appropriate learning rate to help the model rapidly converge towards an optimal solution. On the public dataset, the model achieved an optimal accuracy of 94.33% with a learning rate of 3e-5; an optimal recall of 89.72% with 5e-5; and an overall optimal performance with 4e-5, as illustrated in Figure 4.2.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{Fig/figure4_2_learning_rate.pdf} % 原始图4.2（已转PDF）
+\caption{Learning rate comparison experiment results}
+\alttext{Bar plot comparing ACC, Precision, Recall, F1-score, AUC, AUPR across 7 learning rates (1e-6 to 1e-4); learning rate 4e-5 achieves the highest overall performance, with ACC≈0.94 and F1-score≈0.90.}
+\label{fig:learning_rate}
+\end{figure}
+
+This study employs the Adam (Adaptive Moment Estimation) optimisation algorithm. Its core principles include first-order moment estimation and second-order moment estimation:
+\begin{equation}
+m_t = \beta_1 \cdot m_{t-1} + (1-\beta_1) \cdot g_t
+\label{eq:adam_m}
+\end{equation}
+\begin{equation}
+v_t = \beta_2 \cdot v_{t-1} + (1-\beta_2) \cdot g_t^2
+\label{eq:adam_v}
+\end{equation}
+As $m_t$ and $v_t$ exhibit initial deviations, Adam corrects for these:
+\begin{equation}
+\hat{m}_t = \frac{m_t}{1-\beta_1^t}, \quad \hat{v}_t = \frac{v_t}{1-\beta_2^t}
+\label{eq:adam_correction}
+\end{equation}
+Parameters are updated using the corrected $\hat{m}_t$ and $\hat{v}_t$:
+\begin{equation}
+\theta_t = \theta_{t-1} - \frac{\eta \cdot \hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}
+\label{eq:adam_update}
+\end{equation}
+where $\eta$ is the learning rate, and $\epsilon$ is a constant to prevent division-by-zero errors (typically set to 10⁻⁸).
+
+Comparative experimental results incorporating traditional machine learning methods demonstrate that this model consistently exhibits high consistency across different datasets (Tables 4.2 and 4.3).
+
+\begin{table}[!t]
+\caption{Comparative experimental results on Deng’s Dataset}
+\label{tab:comparison_deng}
+\begin{tabular*}{\textwidth}{@{\extracolsep\fill}lcccccc@{\extracolsep\fill}}
+\toprule
+Method & ACC & Precision & Recall & F1-score & AUC & AUPR \\
+\midrule
+DNN & 0.8797 & 0.8047 & 0.7027 & 0.7223 & 0.9963 & 0.9134 \\
+DeepDDI\cite{ryu2018deep} & 0.8371 & 0.7275 & 0.6611 & 0.6848 & 0.9961 & 0.8899 \\
+SSP-TSP-GSP\cite{lee2019novel} & 0.9094 & 0.8509 & 0.8339 & 0.8391 & 0.9961 & 0.9562 \\
+DDIMDL\cite{deng2020multimodal} & 0.8852 & 0.8471 & 0.7182 & 0.7585 & 0.9976 & 0.9208 \\
+RANEDDI\cite{yu2022raneddi} & 0.9228 & 0.8747 & 0.8701 & 0.8717 & 0.9980 & 0.9657 \\
+MDF-SA-DDI\cite{lin2022mdf} & 0.9301 & 0.9085 & 0.8760 & 0.8878 & 0.9989 & 0.9737 \\
+MCFF-MTDDI\cite{han2023mcff} & 0.9350 & 0.9100 & 0.8820 & 0.8918 & 0.9985 & 0.9757 \\
+MSFF-MA-DDI\cite{jin2024msff} & 0.9342 & 0.8806 & 0.8237 & 0.8423 & 0.9993 & 0.9805 \\
+OURs & 0.9418 & 0.9211 & 0.8909 & 0.9005 & 0.9989 & 0.9803 \\
+\botrule
+\end{tabular*}
+\end{table}
+
+\begin{table}[!t]
+\caption{Comparison results on Chen-based Dataset}
+\label{tab:comparison_chen}
+\begin{tabular*}{\textwidth}{@{\extracolsep\fill}lcccccc@{\extracolsep\fill}}
+\toprule
+Method & ACC & Precision & Recall & F1-score & AUC & AUPR \\
+\midrule
+LINE\cite{tang2015line} & 0.7506 & 0.6870 & 0.5451 & 0.5804 & — & — \\
+DeepWalk\cite{perozzi2014deepwalk} & 0.8000 & 0.8220 & 0.7101 & 0.7469 & — & — \\
+DeepDDI\cite{ryu2018deep} & 0.8768 & 0.7986 & 0.7593 & 0.7662 & — & — \\
+KGDDI\cite{karim2019drug} & 0.8923 & 0.7945 & 0.7667 & 0.7666 & — & — \\
+KGNN\cite{lin2020kgnn} & 0.9127 & 0.8583 & 0.8170 & 0.8291 & — & — \\
+MDF-SA-DDI\cite{lin2022mdf} & 0.9379 & 0.9145 & 0.8740 & 0.8967 & 0.9993 & 0.9805 \\
+MCFF-MTDDI\cite{han2023mcff} & 0.9412 & 0.9167 & 0.8899 & 0.8978 & 0.9989 & 0.9786 \\
+MSFF-MA-DDI\cite{jin2024msff} & 0.9380 & 0.8832 & 0.8284 & 0.8469 & 0.9994 & 0.9813 \\
+OURs & 0.9445 & 0.9265 & 0.8902 & 0.8986 & 0.9992 & 0.9807 \\
+\botrule
+\end{tabular*}
+\end{table}
+
+Regarding the construction of drug-drug interaction networks and the selection of drug features, this study conducted in-depth comparative analyses. Experimental results indicate that when the Top-K value is set to 55, the model achieves optimal predictive performance, while a Top-K value of 60 yields suboptimal results, as illustrated in Figure 4.3.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{Fig/figure4_3_topk_parameter.pdf} % 原始图4.3（已转PDF）
+\caption{Network Parameter Configuration (Top-K value comparison)}
+\alttext{Bar plot comparing ACC, Recall, Precision, F1, AUC, AUPR across Top-K values 40/45/50/55/60; Top-K=55 achieves the highest ACC (~0.95) and Recall (~0.925).}
+\label{fig:topk_parameter}
+\end{figure}
+
+Feature ablation experiments confirm that combining three key drug molecular features (drug substructures, target interactions, metabolic pathways) with interaction networks optimises model performance. Details are shown in Figure 4.4.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{Fig/figure4_4_feature_ablation.pdf} % 原始图4.4（已转PDF）
+\caption{Feature ablation experiment results}
+\alttext{Bar plot comparing feature combinations: -SMILES, -SMILES+Target, -SMILES+Enzyme, -SMILES+Target+Enzyme, -Molecule+Network; the combination of SMILES+Target+Enzyme achieves the highest ACC (~0.96) and F1-score (~0.94).}
+\label{fig:feature_ablation}
+\end{figure}
+
+Comprehensive analysis concludes that appropriate network parameter settings and feature combinations not only improve model accuracy but also enhance the reliability and low misclassification rate of drug-drug adverse interaction predictions.
+
+\section{Conclusion}
+We propose a multimodal deep learning framework for ADDI prediction, integrating drug interaction networks and molecular features. The symmetric architecture resolves sequence sensitivity, while deep multimodal fusion enhances predictive performance. Experimental results on two datasets validate its superiority in accuracy and robustness. This framework provides a reliable tool for drug safety assessment and accelerates novel drug development.
+
+\section{Competing interests}
+No competing interests are declared.
+
+\section{Author contributions statement}
+[Author Initials 1] and [Author Initials 2] conceived the study; [Author Initials 3] collected and preprocessed the data; [Author Initials 1] designed and implemented the model; [Author Initials 4] performed the experiments; [Author Initials 1] and [Author Initials 2] analysed the results and wrote the manuscript; all authors reviewed and approved the final version.
+
+\section{Acknowledgments}
+The authors thank the anonymous reviewers for their valuable suggestions. This work is supported by [Grant Number, e.g., National Natural Science Foundation of China (No. 12345678)] and [Other Funding Source].
+
+%% 参考文献（完整保留原始文献）
+\begin{thebibliography}{27}
+
+\bibitem{wang2022current}
+Wang Y, Minden A. Current molecular combination therapies used for the treatment of breast cancer[J]. International journal of molecular sciences, 2022, 23(19): 11046.
+
+\bibitem{qin2017maras}
+Qin X, Kakar T, Wunnava S, et al. Maras: Signalling multi-drug adverse reactions[C]//Proceedings of the 23rd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining. 2017: 1615-1623.
+
+\bibitem{zhang2018manifold}
+Zhang W, Chen Y, Li D, et al. Manifold regularised matrix factorisation for drug-drug interaction prediction[J]. Journal of Biomedical Informatics, 2018, 88: 90–97.
+
+\bibitem{mswahili2024transformer}
+Mswahili M E, Jeong Y S. Transformer-based models for chemical SMILES representation: A comprehensive literature review[J]. Heliyon, 2024.
+
+\bibitem{tatonetti2012novel}
+Tatonetti N P, Fernald G H, Altman R B. A novel signal detection algorithm for identifying hidden drug-drug interactions in adverse event reports[J]. Journal of the American Medical Informatics Association, 2012, 19(1): 79–85.
+
+\bibitem{kastrin2018predicting}
+Kastrin A, Ferk P, Leskošek B. Predicting potential drug-drug interactions on topological and semantic similarity features using statistical learning[J]. PloS one, 2018, 13(5): e0196865.
+
+\bibitem{tari2010discovering}
+Tari L, Anwar S, Liang S, et al. Discovering drug-drug interactions: a text-mining and reasoning approach based on properties of drug metabolism[J]. Bioinformatics, 2010, 26(18): i547-i553.
+
+\bibitem{jin2017multitask}
+Jin B, Yang H, Xiao C, et al. Multitask dyadic prediction and its application in predicting adverse drug-drug interactions[C]//Proceedings of the AAAI conference on artificial intelligence. 2017, 31(1).
+
+\bibitem{knox2024drugbank}
+Knox C, Wilson M, Klinger C M, et al. DrugBank 6.0: the DrugBank knowledge base for 2024[J]. Nucleic acids research, 2024, 52(D1): D1265-D1275.
+
+\bibitem{kuhn2016sider}
+Kuhn M, Letunic I, Jensen L J, et al. The SIDER database of drugs and side effects[J]. Nucleic acids research, 2016, 44(D1): D1075-D1079.
+
+\bibitem{zitnik2018modelling}
+Zitnik M, Agrawal M, Leskovec J. Modelling polypharmacy side effects with graph convolutional networks[J]. Bioinformatics, 2018, 34(13): i457-i466.
+
+\bibitem{karim2019drug}
+Karim M R, Cochez M, Jares J B, et al. Drug-drug interaction prediction based on knowledge graph embeddings and a convolutional-LSTM network[C]//Proceedings of the 10th ACM International Conference on Bioinformatics, Computational Biology, and Health Informatics. 2019: 113–123.
+
+\bibitem{bjerrum2024python}
+Bjerrum E J, Palunas K, Menke J. Python-Based Interactive RDKit Molecule Editing with rdEditor[J]. 2024.
+
+\bibitem{vaswani2017attention}
+Vaswani A. Attention is all you need[J]. Advances in Neural Information Processing Systems, 2017.
+
+\bibitem{deng2020multimodal}
+Deng Y, Xu X, Qiu Y, et al. A multimodal deep learning framework for predicting drug-drug interaction events[J]. Bioinformatics, 2020, 36(15): 4316–4322.
+
+\bibitem{ryu2018deep}
+Ryu J Y, Kim H U, Lee S Y. Deep learning improves the prediction of drug-drug and drug-food interactions[J]. Proceedings of the National Academy of Sciences, 2018, 115(18): E4304-E4311.
+
+\bibitem{lee2019novel}
+Lee G, Park C, Ahn J. Novel deep learning model for more accurate prediction of drug-drug interaction effects[J]. BMC Bioinformatics, 2019, 20: 1–8.
+
+\bibitem{yu2022raneddi}
+Yu H, Dong W M, Shi J Y. RANEDDI: Relation-aware network embedding for drug-drug interaction prediction[J]. Information Sciences, 2022, 582: 167-180.
+
+\bibitem{lin2022mdf}
+Lin S, Wang Y, Zhang L, et al. MDF-SA-DDI: predicting drug-drug interaction events based on multi-source drug fusion, multi-source feature fusion, and transformer self-attention mechanism[J]. Briefings in Bioinformatics, 2022, 23(1): bbab421.
+
+\bibitem{han2023mcff}
+Han C D, Wang C C, Huang L, et al. MCFF-MTDDI: multi-channel feature fusion for multi-typed drug-drug interaction prediction[J]. Briefings in Bioinformatics, 2023, 24(4): bbad215.
+
+\bibitem{jin2024msff}
+Jin Q, Xie J, Huang D, et al. Msff-ma-ddi: multi-source feature fusion with multiple attention blocks for predicting drug–drug interaction events[J]. Computational Biology and Chemistry, 2024, 108: 108001.
+
+\bibitem{tang2015line}
+Tang J, Qu M, Wang M, et al. LINE: Large-scale information network embedding[C]//Proceedings of the 24th International Conference on World Wide Web. 2015: 1067–1077.
+
+\bibitem{perozzi2014deepwalk}
+Perozzi B, Al-Rfou R, Skiena S. Deepwalk: Online learning of social representations[C]//Proceedings of the 20th ACM SIGKDD international conference on Knowledge discovery and data mining. 2014: 701–710.
+
+\bibitem{lin2020kgnn}
+Lin X, Quan Z, Wang Z J, et al. KGNN: Knowledge graph neural network for drug-drug interaction prediction[C]//IJCAI. 2020, 380: 2739–2745.
+
+\end{thebibliography}
+
+%% 作者简介
+\begin{biography}{}{\author{First Author.} PhD candidate in Biomedical Engineering at XX University. Research interests include deep learning, drug discovery, and biomedical data mining.}
+\end{biography}
+
+\begin{biography}{}{\author{Second Author.} Professor at XX Institute of Medicine. Focuses on pharmacology and clinical drug safety research.}
+\end{biography}
+
+\end{document}
